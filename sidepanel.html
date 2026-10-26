@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FB Comment Reply Drafter</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header>
+    <h1>Reply Drafter</h1>
+    <nav>
+      <button class="tab active" data-tab="replies">Replies</button>
+      <button class="tab" data-tab="snippets">Snippets</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+  </header>
+
+  <div id="updateBanner" class="banner" hidden></div>
+
+  <!-- Replies -->
+  <section id="tab-replies" class="panel active">
+    <div class="toolbar">
+      <button id="scanBtn" class="primary">Scan comments</button>
+      <button id="genAllBtn" disabled>Draft all</button>
+      <select id="toneQuick" title="Tone"></select>
+    </div>
+    <div class="options">
+      <label><input type="checkbox" id="optExpand" checked> Load more comments and replies</label>
+      <label><input type="checkbox" id="optReplies" checked> Include replies</label>
+      <label><input type="checkbox" id="optSkipMine" checked> Skip my own comments</label>
+    </div>
+    <div id="status" class="status"></div>
+    <details id="postBox" hidden>
+      <summary>Post text (used as context)</summary>
+      <textarea id="postText" rows="4"></textarea>
+    </details>
+    <div id="filterBar" hidden>
+      <input id="filter" type="search" placeholder="Filter comments…">
+    </div>
+    <div id="comments"></div>
+    <p id="empty" class="hint">Open a Facebook post, then press <b>Scan comments</b>. Tip: you don't need this panel for single replies. Click into any reply box on Facebook and use the ✨ AI reply button or a snippet right there.</p>
+  </section>
+
+  <!-- Snippets -->
+  <section id="tab-snippets" class="panel">
+    <p class="hint">Saved replies. <b>Fill</b> types a snippet into the reply box open on Facebook (if none is open, it copies instead). Picking a snippet on a comment card opens that comment's reply box and fills it. <code>{name}</code> becomes the commenter's first name.</p>
+    <div id="snippetList"></div>
+    <div class="card">
+      <input id="snipTitle" placeholder="Label (e.g. Thanks)">
+      <textarea id="snipText" rows="3" placeholder="Reply text, e.g. Thank you so much, {name}! 🙏"></textarea>
+      <div class="row">
+        <button id="snipSave" class="primary">Add snippet</button>
+        <button id="snipCancel" hidden>Cancel edit</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="tab-settings" class="panel">
+    <label class="field">OpenRouter API key
+      <div class="row">
+        <input id="apiKey" type="password" placeholder="sk-or-…" autocomplete="off">
+        <button id="toggleKey" type="button">Show</button>
+      </div>
+      <small>Get one at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>. Stored only in this browser (chrome.storage.local).</small>
+    </label>
+    <label class="field">Model
+      <input id="model" list="modelList" placeholder="google/gemini-2.5-flash">
+      <datalist id="modelList"></datalist>
+      <small>Type to search OpenRouter's model list. Gemini, GPT and Claude models handle Bangla well.</small>
+    </label>
+    <label class="field">Default tone
+      <select id="tone"></select>
+    </label>
+    <label class="field">Reply length
+      <select id="length">
+        <option value="auto">Auto (no limit, fits the comment)</option>
+        <option value="short">Short (about 1 sentence)</option>
+        <option value="medium">Medium (2–3 sentences)</option>
+        <option value="long">Longer (a short paragraph)</option>
+      </select>
+    </label>
+    <label class="field"><input type="checkbox" id="inPageToolbar" style="width:auto"> Show AI reply and snippets on Facebook's reply boxes
+      <small>A small bar appears under any comment or reply box you click into. Refresh open Facebook tabs after installing or updating.</small>
+    </label>
+    <label class="field">Your name on Facebook
+      <input id="myName" placeholder="Used to skip your own comments">
+    </label>
+    <label class="field">Extra instructions (optional)
+      <textarea id="extra" rows="4" placeholder="e.g. I run a design agency. Invite people to DM for pricing. Use at most one emoji."></textarea>
+    </label>
+    <div class="row">
+      <button id="saveSettings" class="primary">Save</button>
+      <button id="testKey">Test connection</button>
+    </div>
+    <div id="settingsStatus" class="status"></div>
+
+    <h2>Updates</h2>
+    <p class="hint">Installed version <b id="curVersion"></b>. After pulling new code from GitHub, press Reload to load it.</p>
+    <div class="row">
+      <button id="checkUpdate">Check for update</button>
+      <button id="reloadExt">Reload extension</button>
+    </div>
+    <div id="updateStatus" class="status"></div>
+  </section>
+
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>
