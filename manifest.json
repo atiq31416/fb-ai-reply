@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FB Comment Reply Drafter",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Adds AI replies and saved snippets to Facebook comment boxes, using OpenRouter. It types the reply; you press Enter to post.",
   "permissions": [
     "storage",

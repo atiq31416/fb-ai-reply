@@ -9,7 +9,21 @@
   const norm = (s) => clean(s).toLowerCase();
   const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING;
   const COMMENT_LABEL = /^(comment|reply)\s+by\s+|(মন্তব্য|উত্তর|জবাব|কমেন্ট|রিপ্লাই)/i;
-  const isBox = (el) => el && el.isContentEditable && el.getAttribute && el.getAttribute('role') === 'textbox';
+  // Facebook's comment editor is a contenteditable root (normally with
+  // role="textbox"). Accept the editable root itself; skip Messenger chats.
+  const editRoot = (el) => {
+    if (!el || !el.isContentEditable) return null;
+    let r = el;
+    while (r.parentElement && r.parentElement.isContentEditable) r = r.parentElement;
+    return r;
+  };
+  const isBox = (el) => {
+    const r = editRoot(el);
+    if (!r || r !== el) return false;
+    const label = (r.getAttribute('aria-label') || '') + ' ' + (r.getAttribute('aria-placeholder') || '');
+    if (/message|বার্তা|মেসেজ/i.test(label) && !/comment|reply|মন্তব্য|উত্তর/i.test(label)) return false;
+    return true;
+  };
 
   let snippets = [];
   let tone = 'friendly';
@@ -104,7 +118,8 @@
   function insert(box, text) {
     box.focus();
     const sel = window.getSelection();
-    if (!sel.rangeCount || !box.contains(sel.anchorNode)) {
+    // Facebook pre-selects the @mention it adds; don't overwrite it.
+    if (!sel.rangeCount || !box.contains(sel.anchorNode) || !sel.isCollapsed) {
       const r = document.createRange();
       r.selectNodeContents(box);
       r.collapse(false);
@@ -237,8 +252,8 @@
   }
 
   document.addEventListener('focusin', (e) => {
-    const el = e.target;
-    if (isBox(el)) show(el);
+    const el = editRoot(e.target);
+    if (el && isBox(el)) show(el);
   }, true);
   document.addEventListener('focusout', () => {
     setTimeout(() => {
@@ -252,5 +267,11 @@
   window.addEventListener('scroll', () => { if (box) place(); }, true);
   window.addEventListener('resize', () => { if (box) place(); });
   // Facebook re-renders boxes; keep the toolbar attached to the live one.
-  setInterval(() => { if (box) place(); }, 500);
+  // Also poll: Facebook sometimes focuses its editor without a focusin we
+  // can see (e.g. right after clicking Reply, or when the script loaded late).
+  setInterval(() => {
+    const a = editRoot(document.activeElement);
+    if (a && isBox(a) && a !== box) show(a);
+    else if (box) place();
+  }, 400);
 })();
