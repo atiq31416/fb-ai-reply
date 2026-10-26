@@ -271,6 +271,9 @@ export async function fillReply(id, text, author, commentText) {
   // Facebook's editor listens for real input events; execCommand produces
   // them. A synthetic paste is the fallback.
   let ok = document.execCommand('insertText', false, insert);
+  // Facebook applies the insert a moment later; check before falling back,
+  // or the text gets typed twice.
+  if (ok) await sleep(200);
   if (!ok || !clean(box.textContent).includes(clean(text).slice(0, 20))) {
     const dt = new DataTransfer();
     dt.setData('text/plain', insert);
@@ -287,7 +290,7 @@ export async function fillReply(id, text, author, commentText) {
 
 // Types a snippet into the reply box that is focused, or the one Fill reply
 // used last. {name} becomes the first name of the comment that box replies to.
-export function fillOpenReplyBox(text) {
+export async function fillOpenReplyBox(text) {
   const clean = (s) => (s || '').replace(/\s+/g, ' ').trim();
   const isBox = (el) => el && el.isConnected && el.isContentEditable && el.getAttribute('role') === 'textbox';
   let box = isBox(document.activeElement) ? document.activeElement : window.__fbrdLastBox;
@@ -319,6 +322,7 @@ export function fillOpenReplyBox(text) {
   sel.addRange(range);
   const insert = (clean(box.textContent) ? ' ' : '') + filled;
   let ok = document.execCommand('insertText', false, insert);
+  if (ok) await new Promise((r) => setTimeout(r, 200));
   if (!ok || !clean(box.textContent).includes(clean(filled).slice(0, 20))) {
     const dt = new DataTransfer();
     dt.setData('text/plain', insert);

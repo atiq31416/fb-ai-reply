@@ -116,7 +116,7 @@
   }
 
   // ---------- typing into the box ----------
-  function insert(box, text) {
+  async function insert(box, text) {
     box.focus();
     const sel = window.getSelection();
     // Facebook pre-selects the @mention it adds; don't overwrite it.
@@ -129,8 +129,11 @@
     }
     const before = clean(box.textContent);
     const t = (before && !/\s$/.test(box.textContent) ? ' ' : '') + text;
-    let ok = document.execCommand('insertText', false, t);
-    if (!ok || clean(box.textContent) === before) {
+    // Facebook's editor applies the insert a moment later, so wait before
+    // deciding it failed; pasting straight away typed the text twice.
+    const ok = document.execCommand('insertText', false, t);
+    if (ok) await new Promise((r) => setTimeout(r, 200));
+    if (!ok || !clean(box.textContent).includes(clean(text).slice(0, 15))) {
       const dt = new DataTransfer();
       dt.setData('text/plain', t);
       box.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
@@ -241,7 +244,7 @@
         type: 'draft', tone, postText: postText(),
         comment: { author: t.author, text: t.text, isReply: t.isReply, parentAuthor: t.parentAuthor },
       });
-      if (res && res.text) insert(target, res.text);
+      if (res && res.text) await insert(target, res.text);
       else msgEl.textContent = (res && res.error) || 'No reply came back.';
     } catch (e) {
       msgEl.textContent = /context invalidated/i.test(e.message) ? 'Extension was reloaded. Refresh this page.' : e.message;
