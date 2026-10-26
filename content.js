@@ -147,16 +147,17 @@
     <style>
       :host { all: initial; }
       .bar { display:flex; gap:6px; align-items:center; padding:5px 6px; border-radius:10px;
-        font: 12px/1.3 system-ui, "Noto Sans Bengali", sans-serif; overflow-x:auto; scrollbar-width:thin;
+        font: 12px/1.3 system-ui, "Noto Sans Bengali", sans-serif; flex-wrap:wrap; box-sizing:border-box; max-width:100%;
         background:#fff; color:#1c1e21; border:1px solid #dadde1; box-shadow:0 2px 8px rgba(0,0,0,.12); }
       @media (prefers-color-scheme: dark) { .bar { background:#242526; color:#e4e6eb; border-color:#3e4042; } }
-      button { all:unset; cursor:pointer; white-space:nowrap; padding:4px 9px; border-radius:999px;
+      button { all:unset; cursor:pointer; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; padding:4px 9px; border-radius:999px;
         background:rgba(127,127,127,.14); font:inherit; }
       button:hover { background:rgba(127,127,127,.26); }
       button.ai { background:#1877f2; color:#fff; font-weight:600; }
       button.ai:hover { background:#166fe5; }
       button[disabled] { opacity:.55; cursor:default; }
-      .msg { white-space:nowrap; color:#e41e3f; }
+      .msg { color:#e41e3f; flex-basis:100%; }
+      .msg:empty { display:none; }
       .gear { padding:4px 6px; }
     </style>
     <div class="bar">
@@ -221,19 +222,50 @@
 
   root.querySelector('.gear').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'openPanel' }).catch(() => {}));
 
+  // The whole composer bubble (text box plus Facebook's emoji/photo/GIF
+  // icon row): the largest ancestor that is still about as wide as the box
+  // and holds no comments.
+  function composerOf(b) {
+    const rb = b.getBoundingClientRect();
+    let best = b;
+    for (let el = b.parentElement, i = 0; el && i < 8; el = el.parentElement, i++) {
+      if (el.querySelector('[role="article"]') || el === document.body) break;
+      const r = el.getBoundingClientRect();
+      if (r.width > rb.width * 1.35 + 80 || r.height > rb.height + 160) break;
+      best = el;
+    }
+    return best;
+  }
+
+  // Reserve room under the composer so the bar never covers it.
+  let spaced = null;
+  let spacedPrev = '';
+  function reserve(el, px) {
+    if (spaced !== el) {
+      release();
+      spaced = el;
+      spacedPrev = el.style.marginBottom;
+    }
+    const want = px + 'px';
+    if (el.style.marginBottom !== want) el.style.marginBottom = want;
+  }
+  function release() {
+    if (spaced) spaced.style.marginBottom = spacedPrev;
+    spaced = null;
+  }
+
   function place() {
     if (!box || !box.isConnected) { if (!busy) hide(); return; }
     const r = box.getBoundingClientRect();
     if (!r.width && !r.height) return;
-    const wrap = box.closest('form') || box.parentElement;
-    const w = Math.max(260, (wrap ? wrap.getBoundingClientRect().width : r.width));
-    const left = Math.min(Math.max(8, r.left - 8), window.innerWidth - w - 8);
-    host.style.left = left + 'px';
+    const comp = composerOf(box);
+    const cr = comp.getBoundingClientRect();
+    const w = Math.max(220, cr.width);
     host.style.width = w + 'px';
+    host.style.left = Math.min(Math.max(4, cr.left), window.innerWidth - w - 4) + 'px';
     const h = bar.offsetHeight || 34;
-    // Below the box, so the comment being answered stays readable.
-    const top = r.bottom + h + 8 <= window.innerHeight ? r.bottom + 6 : Math.max(0, r.top - h - 6);
-    host.style.top = top + 'px';
+    reserve(comp, h + 8);
+    host.style.top = Math.min(cr.bottom + 4, window.innerHeight - h - 4) + 'px';
   }
 
   function show(b) {
@@ -248,6 +280,7 @@
   }
   function hide() {
     host.style.display = 'none';
+    release();
     box = null;
   }
 
@@ -266,6 +299,8 @@
   }, true);
   window.addEventListener('scroll', () => { if (box) place(); }, true);
   window.addEventListener('resize', () => { if (box) place(); });
+  // The box grows as text is typed; follow it right away.
+  document.addEventListener('input', () => { if (box) requestAnimationFrame(place); }, true);
   // Facebook re-renders boxes; keep the toolbar attached to the live one.
   // Also poll: Facebook sometimes focuses its editor without a focusin we
   // can see (e.g. right after clicking Reply, or when the script loaded late).
