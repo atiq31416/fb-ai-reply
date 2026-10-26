@@ -8,7 +8,16 @@ export const TONES = {
   witty: 'Light and witty, with gentle humour, never sarcastic or mean.',
   grateful: 'Very appreciative and humble, focused on thanking the person.',
   formal: 'Formal and respectful.',
+  supportive: 'Supportive and encouraging. Show empathy, agree where you can, and make the person feel heard.',
+  different: 'Offer a different perspective. Respectfully add an angle or counterpoint the commenter may not have considered.',
+  angry: 'Angry and firm. Show clear frustration or disagreement in strong, direct words, but no slurs, threats or personal insults.',
+  savage: 'Savage. A sharp, cutting, clever comeback that wins the exchange, roast-style, but no slurs, threats or hate.',
+  sarcasm: 'Sarcastic. Dry, ironic humour that says the opposite of what is meant, so the point lands with a smirk.',
+  inspiring: 'Inspiring and uplifting. Motivate the reader with hope, conviction and a memorable line.',
+  thoughtful: 'Thoughtful and reflective. Engage with the idea seriously, add insight, and ask or answer with nuance.',
 };
+// Tones where a rude comment may get an edgy answer instead of a calm one.
+const EDGY = new Set(['angry', 'savage', 'sarcasm', 'different']);
 export const LENGTHS = {
   auto: 'No fixed length. Fit the reply to the comment: a quick reaction gets a quick reply, a detailed comment or question gets a full answer.',
   short: 'Keep it short, about one sentence.',
@@ -70,7 +79,9 @@ export function buildMessages(settings, postText, c) {
     'Sound like a real person, not a brand bot. Do not use hashtags. Do not wrap the reply in quotes. Output only the reply text.',
     'You may address the commenter by first name when it feels natural.',
     'Do not invent facts, prices, dates or promises. If the comment asks something you cannot know from the post, answer graciously and invite them to message.',
-    'If the comment is rude or spam, write a calm, brief, polite reply.',
+    EDGY.has(settings.tone)
+      ? 'Stay within the chosen tone even if the comment is rude. Never use slurs, threats, sexual content or attacks on religion, ethnicity, gender or other protected traits.'
+      : 'If the comment is rude or spam, write a calm, brief, polite reply.',
     settings.extra ? 'Extra instructions from the user: ' + settings.extra : '',
   ].filter(Boolean).join('\n');
 

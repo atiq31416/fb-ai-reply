@@ -34,12 +34,13 @@
       { title: 'ধন্যবাদ', text: 'অনেক ধন্যবাদ {name}! ❤️' },
     ];
     tone = s.tone || tone;
+    renderTones();
     enabled = s.inPageToolbar !== false;
     renderChips();
   });
   chrome.storage.onChanged.addListener((ch) => {
     if (ch.snippets) { snippets = ch.snippets.newValue || []; renderChips(); }
-    if (ch.tone) tone = ch.tone.newValue;
+    if (ch.tone) { tone = ch.tone.newValue; if (typeof renderTones === 'function') renderTones(); }
     if (ch.inPageToolbar) { enabled = ch.inPageToolbar.newValue !== false; if (!enabled) hide(); }
   });
 
@@ -159,17 +160,47 @@
       .msg { color:#e41e3f; flex-basis:100%; }
       .msg:empty { display:none; }
       .gear { padding:4px 6px; }
+      .tonebtn { font-weight:600; }
+      .tones { display:flex; flex-wrap:wrap; gap:6px; flex-basis:100%; padding-top:4px; border-top:1px solid rgba(127,127,127,.25); }
+      .tones[hidden] { display:none; }
+      .tones button.on { background:#1877f2; color:#fff; }
     </style>
     <div class="bar">
       <button class="ai" title="Draft a reply with AI and type it here">✨ AI reply</button>
+      <button class="tonebtn" title="Change the AI tone">Friendly ▾</button>
       <span class="chips" style="display:contents"></span>
       <span class="msg"></span>
       <button class="gear" title="Open Reply Drafter (settings, snippets)">⚙</button>
+      <div class="tones" hidden></div>
     </div>`;
   const bar = root.querySelector('.bar');
   const aiBtn = root.querySelector('.ai');
   const chips = root.querySelector('.chips');
   const msgEl = root.querySelector('.msg');
+  const toneBtn = root.querySelector('.tonebtn');
+  const tonesEl = root.querySelector('.tones');
+  const TONE_NAMES = ['friendly', 'professional', 'casual', 'witty', 'grateful', 'formal',
+    'supportive', 'different', 'angry', 'savage', 'sarcasm', 'inspiring', 'thoughtful'];
+  const cap = (t) => t[0].toUpperCase() + t.slice(1);
+  function renderTones() {
+    toneBtn.textContent = cap(tone) + ' ▾';
+    tonesEl.innerHTML = '';
+    for (const t of TONE_NAMES) {
+      const b = document.createElement('button');
+      b.textContent = cap(t);
+      if (t === tone) b.className = 'on';
+      // Picking a tone remembers it and drafts right away.
+      b.addEventListener('click', () => {
+        tone = t;
+        chrome.storage.local.set({ tone: t });
+        tonesEl.hidden = true;
+        renderTones();
+        aiBtn.click();
+      });
+      tonesEl.appendChild(b);
+    }
+  }
+  toneBtn.addEventListener('click', () => { tonesEl.hidden = !tonesEl.hidden; place(); });
   (document.body || document.documentElement).appendChild(host);
 
   // Keep focus (and the caret) in Facebook's box while clicking the toolbar.
