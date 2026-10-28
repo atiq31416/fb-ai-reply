@@ -17,12 +17,24 @@
     while (r.parentElement && r.parentElement.isContentEditable) r = r.parentElement;
     return r;
   };
+  // Only comment and reply boxes: never the "What's on your mind" post
+  // composer or Messenger chats.
+  const COMMENTY = /comment|reply|replying|মন্তব্য|উত্তর|জবাব|কমেন্ট|রিপ্লাই/i;
+  const NOT_COMMENT = /on your mind|create (a )?(public )?post|write something|message|chat|বার্তা|মেসেজ|ভাবছেন|পোস্ট তৈরি|কিছু লিখুন/i;
   const isBox = (el) => {
     const r = editRoot(el);
     if (!r || r !== el) return false;
-    const label = (r.getAttribute('aria-label') || '') + ' ' + (r.getAttribute('aria-placeholder') || '');
-    if (/message|বার্তা|মেসেজ/i.test(label) && !/comment|reply|মন্তব্য|উত্তর/i.test(label)) return false;
-    return true;
+    const label = (r.getAttribute('aria-label') || '') + ' ' + (r.getAttribute('aria-placeholder') || '') + ' ' +
+      ((r.parentElement && r.parentElement.querySelector('[aria-hidden="true"]') || {}).textContent || '');
+    // Never in Messenger (pages or chat pop-ups) or the post-creation dialog.
+    if (/\/messages\//.test(location.pathname)) return false;
+    if (r.closest('[aria-label*="chat" i], [aria-label*="messenger" i], [aria-label*="conversation" i], [aria-label*="create post" i], [aria-label*="পোস্ট তৈরি"]')) return false;
+    if (/message|chat|বার্তা|মেসেজ/i.test(label) && !/comment|মন্তব্য|কমেন্ট/i.test(label)) return false;
+    if (COMMENTY.test(label)) return true;
+    if (NOT_COMMENT.test(label)) return false;
+    // Unlabelled box: allow only inside a post's comment area.
+    return !!r.closest('[role="article"]') ||
+      [...document.querySelectorAll('[role="article"][aria-label]')].some((a) => /^(comment|reply)\s+by|মন্তব্য|উত্তর/i.test(a.getAttribute('aria-label')) && (a.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING) && a.parentElement && a.parentElement.contains(r));
   };
 
   let snippets = [];
